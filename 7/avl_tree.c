@@ -1,0 +1,129 @@
+#include <stdlib.h>
+
+typedef struct Node {
+    int data;
+    struct Node* left;
+    struct Node* right;
+    int height;
+} Node;
+
+int get_height(Node* n){
+    if(!n) return 0;
+    return n->height;
+}
+
+Node* createNode(int data){
+    Node* n = (Node*)malloc(sizeof(Node));
+    if(!n) return;
+    n->data = data;
+    n->left = n->right = NULL;
+    n->height = 1;
+    return n;
+}
+
+int get_balance(Node* n){
+    if(!n) return 0;
+    return get_height(n->left) - get_height(n->right);
+}
+
+Node* rightRotate(Node* y){
+    Node* x = y->left;
+    Node* T2 = x->right;
+
+    x->right = y;
+    y->left = T2;
+
+    y->height = max(get_height(y->left), get_height(y->right)) + 1;
+    x->height = max(get_height(x->left), get_height(x->right)) + 1;
+
+    return x;
+}
+
+Node* leftRotate(Node* x){
+    Node* y = x->right;
+    Node* T2 = y->left;
+
+    y->left = x;
+    x->right = T2;
+
+    x->height = max(get_height(x->left), get_height(x->right)) + 1;
+    y->height = max(get_height(y->left), get_height(y->right)) + 1;
+
+    return y;
+}
+
+Node* searchNode(Node* root, int data){
+    if(!root || root->data == data) return root;
+    if(data < root->data) return searchNode(root->left, data);
+    return searchNode(root->right, data);
+}
+
+Node* insertNode(Node* root, int data){
+    if(!root) return createNode(data);
+    if(data < root->data) root->left = insertNode(root->left, data);
+    else if (data > root->data) root->right = insertNode(root->right, data);
+    else return root;
+    
+    root->height = 1 + max(get_height(root->left), get_height(root->right));
+    int balance = get_balance(root);
+    if(balance > 1 && data < root->left->data) return rightRotate(root);
+    if(balance < -1 && data > root->right->data) return leftRotate(root);
+    if(balance > 1 && data > root->left->data){
+        root->left = leftRotate(root->left);
+        return rightRotate(root);
+    }
+    if(balance < -1 && data < root->right->data){
+        root->right = rightRotate(root->right);
+        return leftRotate(root);
+    }
+    return root;
+}
+
+Node* findMin(Node* root){
+    Node* curr = root;
+    while (curr && curr->left) curr = curr->left;
+    return curr;
+}
+
+Node* deleteNode(Node* root, int data){
+    if(!root) return root;
+    if(data < root->data) root->left = deleteNode(root->left, data);
+    else if(data > root->data) root->right = deleteNode(root->right, data);
+    else {
+        if(!root->left) {
+            Node* temp = root->right;
+            free(root);
+            return temp;
+        }
+        else if(!root->right){
+            Node* temp = root->left;
+            free(root);
+            return temp;
+        }
+        Node* temp = findMin(root->right);
+        root->data = temp->data;
+        root->right = deleteNode(root->right, temp->data);
+    }
+
+    if(!root) return root;
+    root->height = 1 + max(get_height(root->left), get_height(root->right));
+    int balance = get_balance(root);
+    if(balance > 1 && get_balance(root->left) >= 0) return rightRotate(root);
+    if(balance < -1 && get_balance(root->right) <= 0) return leftRotate(root);
+    if(balance > 1 && get_balance(root->left) < 0) {
+        root->left = leftRotate(root->left);
+        return rightRotate(root);
+    }
+    if(balance < -1 && get_balance(root->right) > 0) {
+        root->right = rightRotate(root->right);
+        return leftRotate(root);
+    }
+    return root;
+}
+
+void freeTree(Node* root){
+    if(!root) return;
+    freeTree(root->left);
+    freeTree(root->right);
+    free(root);
+}
